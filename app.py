@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
 from datetime import datetime
 from database import get_chemical_database, get_ghs_images
 from analyzer import analyze_compatibility
+import json
 
 st.set_page_config(
     page_title="CHECKCOMCHEMISTRY",
@@ -108,6 +108,7 @@ st.markdown("""
         animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));
         transition: transform 0.3s ease;
+        font-size: 60px;
     }
     
     .ghs-icon:hover {
@@ -142,39 +143,6 @@ st.markdown("""
         font-size: 12px;
         margin-top: 8px;
         font-weight: 600;
-    }
-    
-    .danger-badge {
-        display: inline-block;
-        background: #ff006e;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        margin-top: 8px;
-        animation: popIn 0.8s ease-out;
-    }
-    
-    .warning-badge {
-        display: inline-block;
-        background: #ffa500;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        margin-top: 8px;
-        animation: popIn 0.8s ease-out;
-    }
-    
-    .safe-badge {
-        display: inline-block;
-        background: #00d97e;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 12px;
-        margin-top: 8px;
-        animation: popIn 0.8s ease-out;
     }
     
     .info-box {
@@ -223,13 +191,32 @@ st.markdown("""
         box-shadow: 0 6px 12px rgba(0, 212, 255, 0.4);
     }
     
-    .stSelectbox, .stTextInput {
-        color: #eaeaea;
+    .favorite-card {
+        background: linear-gradient(135deg, #0f3460 0%, #1a4d6d 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 15px 0;
+        border: 2px solid #ff006e;
+        box-shadow: 0 4px 15px rgba(255,0,110,0.2);
+        animation: slideIn 0.6s ease-out;
     }
     
-    /* Sidebar styling */
-    .sidebar .sidebar-content {
-        background-color: #0f3460;
+    .favorite-card:hover {
+        box-shadow: 0 8px 25px rgba(255,0,110,0.4);
+        transform: translateY(-5px);
+    }
+    
+    .favorite-title {
+        color: #ff006e;
+        font-weight: bold;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    
+    .favorite-info {
+        color: #eaeaea;
+        font-size: 14px;
+        margin: 5px 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -251,7 +238,7 @@ st.sidebar.markdown("---")
 
 menu = st.sidebar.radio(
     "📌 MENU UTAMA",
-    ["🏠 Home", "🔍 Cek Kompatibilitas", "📊 Dashboard", "❤️ Favorit", "📚 Panduan", "🧪 Database", "⚙️ Pengaturan"]
+    ["🏠 Home", "🔍 Cek Kompatibilitas", "📊 Dashboard", "❤��� Favorit", "📚 Panduan", "🧪 Database", "⚙️ Pengaturan"]
 )
 
 if menu == "🏠 Home":
@@ -260,7 +247,7 @@ if menu == "🏠 Home":
     st.markdown("""
     <div class='info-box'>
         <h3 style='color:#00d4ff;'>🎯 Selamat Datang di Checkcomchemistry</h3>
-        <p>Sistem manajemen keamanan bahan kimia dengan visualisasi 3D GHS yang canggih, database 500+ bahan kimia, dan analisis real-time.</p>
+        <p>Sistem manajemen keamanan bahan kimia dengan visualisasi GHS yang canggih, database 500+ bahan kimia, dan analisis real-time.</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -270,7 +257,7 @@ if menu == "🏠 Home":
         <div class='metric-card'>
             <div style='font-size:40px;'>🔍</div>
             <div class='metric-label'>CEK KOMPATIBILITAS</div>
-            <p style='font-size:12px; color:#eaeaea;'>Analisis real-time dengan visualisasi 3D</p>
+            <p style='font-size:12px; color:#eaeaea;'>Analisis real-time dengan visualisasi</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -299,7 +286,7 @@ if menu == "🏠 Home":
         st.markdown("""
         ### 🚀 Fitur Utama
         - Cek kompatibilitas 500+ bahan kimia
-        - Animasi 3D simbol bahaya GHS
+        - Visualisasi simbol bahaya GHS
         - Rekomendasi penyimpanan otomatis
         - Dashboard analytics komprehensif
         - Export data mudah
@@ -336,13 +323,11 @@ elif menu == "🔍 Cek Kompatibilitas":
     with col2:
         clear_all = st.button("🧹 Hapus Semua", use_container_width=True, key="clear_all_btn")
     
-    # ---- CLEAR ALL HISTORY ----
     if clear_all:
         st.session_state.history = []
         st.success("✅ Semua data riwayat dihapus!")
         st.rerun()
     
-    # ---- CHECK/ANALISIS ----
     if check_btn:
         with st.spinner("🔬 Menganalisis kombinasi bahan kimia..."):
             import time
@@ -360,7 +345,6 @@ elif menu == "🔍 Cek Kompatibilitas":
         
         with col1:
             st.markdown("<div class='chemical-card'>", unsafe_allow_html=True)
-            st.image(ghs_images.get(t1, ""), width=100, use_column_width=True)
             st.markdown(f"""
             <div class='chemical-name'>{chem1}</div>
             <div class='chemical-category'>{t1}</div>
@@ -369,7 +353,6 @@ elif menu == "🔍 Cek Kompatibilitas":
         
         with col2:
             st.markdown("<div class='chemical-card'>", unsafe_allow_html=True)
-            st.image(ghs_images.get(t2, ""), width=100, use_column_width=True)
             st.markdown(f"""
             <div class='chemical-name'>{chem2}</div>
             <div class='chemical-category'>{t2}</div>
@@ -378,23 +361,28 @@ elif menu == "🔍 Cek Kompatibilitas":
         
         st.markdown("---")
         
-        # 3D GHS Symbol Animation
-        st.markdown("<h3 class='section-title'>🎯 Visualisasi Simbol Bahaya (3D)</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 class='section-title'>🎯 Kategori Bahan Kimia</h3>", unsafe_allow_html=True)
         
         col_ghs1, col_ghs2, col_ghs3 = st.columns(3)
         
         with col_ghs1:
-            st.markdown("<div class='ghs-icon-container'>", unsafe_allow_html=True)
-            st.markdown(f"<div class='ghs-icon'><img src='{ghs_images.get(t1, '')}' width='120' style='filter: drop-shadow(0 8px 16px rgba(0,212,255,0.5));'></div>", unsafe_allow_html=True)
-            st.markdown(f"<p style='font-weight:bold; margin-top:10px; color:#00d4ff;'>{t1}</p></div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class='ghs-icon-container'>
+            <div class='ghs-icon'>{ghs_images.get(t1, '🧪')}</div>
+            <p style='font-weight:bold; margin-top:10px; color:#00d4ff;'>{t1}</p>
+            </div>
+            """, unsafe_allow_html=True)
         
         with col_ghs2:
             st.markdown("<div style='text-align:center; display:flex; align-items:center; justify-content:center; height:150px;'><h2 style='font-size:48px; color:#00d4ff;'>+</h2></div>", unsafe_allow_html=True)
         
         with col_ghs3:
-            st.markdown("<div class='ghs-icon-container'>", unsafe_allow_html=True)
-            st.markdown(f"<div class='ghs-icon'><img src='{ghs_images.get(t2, '')}' width='120' style='filter: drop-shadow(0 8px 16px rgba(0,212,255,0.5));'></div>", unsafe_allow_html=True)
-            st.markdown(f"<p style='font-weight:bold; margin-top:10px; color:#00d4ff;'>{t2}</p></div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class='ghs-icon-container'>
+            <div class='ghs-icon'>{ghs_images.get(t2, '🧪')}</div>
+            <p style='font-weight:bold; margin-top:10px; color:#00d4ff;'>{t2}</p>
+            </div>
+            """, unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -418,13 +406,31 @@ elif menu == "🔍 Cek Kompatibilitas":
         }
         st.session_state.history.append(record)
         
+        favorite_data = {
+            "id": len(st.session_state.favorites) + 1,
+            "chem1": chem1,
+            "chem2": chem2,
+            "cat1": t1,
+            "cat2": t2,
+            "status": status.replace("❌ ", "").replace("⚠️ ", "").replace("✅ ", ""),
+            "penjelasan": penjelasan,
+            "penyimpanan": penyimpanan,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        
         col1, col2 = st.columns(2)
         with col1:
             if st.button("❤️ Tambah ke Favorit"):
-                fav = f"{chem1} + {chem2}"
-                if fav not in st.session_state.favorites:
-                    st.session_state.favorites.append(fav)
+                is_duplicate = any(
+                    fav["chem1"] == chem1 and fav["chem2"] == chem2 
+                    for fav in st.session_state.favorites
+                )
+                if not is_duplicate:
+                    st.session_state.favorites.append(favorite_data)
                     st.success("✅ Ditambahkan ke favorit!")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Kombinasi ini sudah ada di favorit!")
         
         with col2:
             if st.button("📋 Copy Hasil"):
@@ -495,14 +501,88 @@ elif menu == "❤️ Favorit":
     
     if st.session_state.favorites:
         st.success(f"✅ Total {len(st.session_state.favorites)} favorit tersimpan")
-        for i, fav in enumerate(st.session_state.favorites):
-            col1, col2 = st.columns([4, 1])
-            with col1:
-                st.write(f"**{i+1}. {fav}**")
-            with col2:
-                if st.button("❌", key=f"del_{i}"):
-                    st.session_state.favorites.pop(i)
-                    st.rerun()
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            sort_fav = st.selectbox("📊 Urutkan", ["Terbaru", "Terlama", "Nama A-Z"])
+        with col2:
+            filter_status = st.multiselect("🔍 Filter Status", ["AMAN", "BERBAHAYA", "PERLU PERHATIAN"], default=["AMAN", "BERBAHAYA", "PERLU PERHATIAN"])
+        with col3:
+            if st.button("📥 Export Favorit"):
+                fav_json = json.dumps(st.session_state.favorites, indent=2, ensure_ascii=False)
+                st.download_button("Download JSON", fav_json, f"favorit_{datetime.now().strftime('%Y%m%d')}.json", "application/json")
+        
+        favorites_sorted = st.session_state.favorites.copy()
+        
+        if sort_fav == "Terbaru":
+            favorites_sorted = sorted(favorites_sorted, key=lambda x: x["timestamp"], reverse=True)
+        elif sort_fav == "Terlama":
+            favorites_sorted = sorted(favorites_sorted, key=lambda x: x["timestamp"])
+        else:
+            favorites_sorted = sorted(favorites_sorted, key=lambda x: x["chem1"])
+        
+        favorites_sorted = [fav for fav in favorites_sorted if fav["status"] in filter_status]
+        
+        st.markdown("---")
+        
+        if favorites_sorted:
+            for idx, fav in enumerate(favorites_sorted):
+                st.markdown("<div class='favorite-card'>", unsafe_allow_html=True)
+                
+                col1, col2, col3 = st.columns([3, 1, 1])
+                
+                with col1:
+                    status_color = "🟢" if "AMAN" in fav["status"] else ("🔴" if "BERBAHAYA" in fav["status"] else "🟡")
+                    st.markdown(f"""
+                    <div class='favorite-title'>{status_color} {fav['chem1']} + {fav['chem2']}</div>
+                    <div class='favorite-info'><strong>Status:</strong> {fav['status']}</div>
+                    <div class='favorite-info'><strong>Kategori:</strong> {fav['cat1']} + {fav['cat2']}</div>
+                    <div class='favorite-info'><strong>Disimpan:</strong> {fav['timestamp']}</div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    if st.button("👁️", key=f"view_{idx}", help="Lihat Detail"):
+                        st.session_state[f"show_detail_{idx}"] = not st.session_state.get(f"show_detail_{idx}", False)
+                
+                with col3:
+                    if st.button("❌", key=f"del_{idx}", help="Hapus"):
+                        st.session_state.favorites.pop(idx)
+                        st.success("✅ Favorit dihapus!")
+                        st.rerun()
+                
+                if st.session_state.get(f"show_detail_{idx}", False):
+                    st.markdown("---")
+                    st.markdown(f"""
+                    <div class='info-box'>
+                    <h4 style='color:#00d4ff;'>📝 Penjelasan</h4>
+                    <p>{fav['penjelasan']}</p>
+                    </div>
+                    
+                    <div class='info-box'>
+                    <h4 style='color:#ffa500;'>📦 Rekomendasi Penyimpanan</h4>
+                    <p>{fav['penyimpanan']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("🔄 Load Ulang Analisis", key=f"reload_{idx}"):
+                            st.info(f"Silakan pilih kembali di menu 'Cek Kompatibilitas':\n\n- **Bahan 1:** {fav['chem1']}\n- **Bahan 2:** {fav['chem2']}")
+                    with col2:
+                        copy_text = f"**Bahan 1:** {fav['chem1']} ({fav['cat1']})\n**Bahan 2:** {fav['chem2']} ({fav['cat2']})\n**Status:** {fav['status']}\n\n**Penjelasan:**\n{fav['penjelasan']}\n\n**Penyimpanan:**\n{fav['penyimpanan']}"
+                        if st.button("📋 Copy Semua", key=f"copy_{idx}"):
+                            st.info(copy_text)
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("")
+        else:
+            st.info("📭 Tidak ada favorit yang sesuai dengan filter.")
+        
+        st.markdown("---")
+        if st.button("🗑️ Hapus Semua Favorit", use_container_width=True):
+            st.session_state.favorites = []
+            st.success("✅ Semua favorit dihapus!")
+            st.rerun()
     else:
         st.info("📭 Tidak ada favorit. Tambahkan saat melakukan pengecekan kompatibilitas!")
 
@@ -577,6 +657,12 @@ elif menu == "📚 Panduan":
         
         **Q: Apakah bahan kategori sama selalu aman?**
         A: Tidak selalu. Kompatibilitas tergantung sifat kimia spesifik setiap bahan.
+        
+        **Q: Berapa jarak pisah minimum untuk bahan berbahaya?**
+        A: Minimal dalam ruangan berbeda atau dengan penghalang besar.
+        
+        **Q: Bagaimana jika tidak tahu kategori bahan?**
+        A: Lihat SDS (Safety Data Sheet) atau tanya ke supplier.
         """)
 
 elif menu == "🧪 Database":
@@ -616,10 +702,12 @@ elif menu == "⚙️ Pengaturan":
         col1, col2 = st.columns(2)
         with col1:
             if st.button("📥 Export Semua Data"):
-                if st.session_state.history:
-                    import json
-                    export_data = json.dumps(st.session_state.history, indent=2, ensure_ascii=False)
-                    st.download_button("Download JSON", export_data, f"fcot_backup_{datetime.now().strftime('%Y%m%d')}.json", "application/json")
+                export_data = {
+                    "history": st.session_state.history,
+                    "favorites": st.session_state.favorites
+                }
+                export_json = json.dumps(export_data, indent=2, ensure_ascii=False)
+                st.download_button("Download JSON", export_json, f"backup_{datetime.now().strftime('%Y%m%d')}.json", "application/json")
         with col2:
             if st.button("🗑️ Hapus Semua Data"):
                 st.session_state.history = []
@@ -628,15 +716,23 @@ elif menu == "⚙️ Pengaturan":
     
     with st.expander("ℹ️ Tentang Aplikasi"):
         st.markdown("""
-        **FCOT Chemical System PRO v3.0**
+        **FCOT Chemical System PRO v3.1**
         
         Aplikasi manajemen keamanan bahan kimia dengan fitur-fitur canggih:
         
         - Analisis kompatibilitas 500+ bahan kimia
-        - Visualisasi 3D simbol bahaya GHS
+        - Visualisasi simbol bahaya GHS
         - Dashboard analytics komprehensif
+        - **Sistem Favorit Lengkap** ⭐ (NEW!)
         - Export/Import data lengkap
         - Panduan interaktif FCOT & GHS
+        
+        **Fitur Favorit Baru:**
+        - Simpan hasil analisis dengan detail lengkap
+        - Filter & sort favorit
+        - View detail hasil analisis
+        - Export favorit ke JSON
+        - Cegah duplikasi
         
         **Teknologi:**
         - Python 3.8+
